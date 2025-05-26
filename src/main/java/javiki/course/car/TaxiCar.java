@@ -9,16 +9,14 @@ public class TaxiCar {
     private final String id;
     private final int number;
     private final PointCoordinates coordinates;
-    private final CarQuality carQuality;
     private final TaxiCarType taxiCarType;
     private Driver driver;
     private AtomicBoolean isAvailable;
 
-    public TaxiCar(String id, Driver driver, int number, CarQuality carQuality, PointCoordinates coordinates, TaxiCarType taxiCarType) {
+    public TaxiCar(String id, Driver driver, int number, PointCoordinates coordinates, TaxiCarType taxiCarType) {
         this.id = id;
         this.driver = driver;
         this.number = number;
-        this.carQuality = carQuality;
         this.coordinates = coordinates;
         this.taxiCarType = taxiCarType;
     }
@@ -30,7 +28,6 @@ public class TaxiCar {
         this.number = other.number;
         this.coordinates = new PointCoordinates(other.coordinates.getX(), other.coordinates.getY());
         this.taxiCarType = other.taxiCarType;
-        this.carQuality = other.carQuality;
     }
 
     public PointCoordinates getCoordinates() {
@@ -57,9 +54,6 @@ public class TaxiCar {
         return taxiCarType;
     }
 
-    public CarQuality getCarQuality() {
-        return carQuality;
-    }
 
     public AtomicBoolean getIsAvailable() {
         return isAvailable;

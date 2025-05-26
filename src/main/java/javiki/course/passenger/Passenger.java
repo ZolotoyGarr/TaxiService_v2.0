@@ -1,19 +1,14 @@
 package javiki.course.passenger;
 
 import javiki.course.*;
+import javiki.course.operator.OperatorPool;
 import javiki.course.request.OrderTaxiRequest;
 import javiki.course.request.NearbyCarsRequest;
-import javiki.course.result.NearbyCarsResult;
 import javiki.course.services.OrderTaxiService;
 import javiki.course.driver.Driver;
 import javiki.course.car.TaxiCar;
-
-import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 public class Passenger implements Runnable {
@@ -24,77 +19,74 @@ public class Passenger implements Runnable {
     private OrderTaxiRequest currentRide;
     private final OrderTaxiService orderTaxiService;
     private static final Random RANDOM = new Random();
+    private final OperatorPool operatorPool;
 
-    public Passenger(OrderTaxiService orderTaxiService) {
+    public Passenger(OrderTaxiService orderTaxiService, OperatorPool operatorPool) {
         this.orderTaxiService = orderTaxiService;
+        this.operatorPool = operatorPool;
         this.profile = new Profile("Пассажир " + UUID.randomUUID().toString().substring(0, 5));
         this.passengerLocation = new PointCoordinates(RANDOM.nextInt(101), RANDOM.nextInt(101));
     }
 
+
     @Override
     public void run() {
         try {
-            LOGGER.info(profile.getName() + ": Начинает поиск машины...");
+            LOGGER.info(profile.getName() + ": Запрашивает такси у оператора...");
+
             boolean rideAccepted = false;
 
             while (!rideAccepted) {
-                // Создаём запрос с рандомным типом машины и текущим местоположением
+                // Формируем запрос
                 NearbyCarsRequest request = new NearbyCarsRequest(
                         this, orderTaxiService.getRandomCarType(), passengerLocation
                 );
+                OrderTaxiRequest order = new OrderTaxiRequest(this, request.getTaxiCarType(), passengerLocation,
+                        new PointCoordinates(RANDOM.nextInt(101), RANDOM.nextInt(101)));
 
-                // Вызываем метод нового сервиса, который сам найдёт и уведомит водителя
-                var orderResult = orderTaxiService.orderTaxi(request);
+                operatorPool.receiveOrder(order);
+                this.currentRide = order; // сохранить ссылку, чтобы потом ждать назначения водителя
 
-                if (!orderResult.isFound()) {
-                    LOGGER.warning(profile.getName() + ": Машины не найдены. Повторный поиск через 2 секунды...");
-                    Thread.sleep(2000);
-                    continue;
+                // Ожидаем, пока оператор присвоит водителя (можно просто подождать и проверять наличие driver'а)
+                while (currentRide == null || currentRide.getDriver() == null) {
+                    Thread.sleep(1000);
                 }
 
-                TaxiCar car = orderResult.getCar();
-                Driver driver = car.getDriver();
+                Driver driver = currentRide.getDriver();
+                TaxiCar car = driver.getTaxiCar();
 
-                // Создаём заказ с fromPoint и toPoint (считаем, что toPoint генерируется где-то в сервисе)
+                LOGGER.info(profile.getName() + ": Назначен водитель " + driver.getProfile().getName());
+
                 PointCoordinates fromPoint = passengerLocation;
-                PointCoordinates toPoint = new PointCoordinates(
-                        RANDOM.nextInt(101), RANDOM.nextInt(101)
-                );
+                PointCoordinates toPoint = currentRide.getToPoint();
 
-                OrderTaxiRequest order = new OrderTaxiRequest(this, car.getTaxiCarType(), fromPoint, toPoint);
-                order.setDriver(driver);
-                driver.setCurrentOrder(order);
-                this.currentRide = order;
-
-                LOGGER.info(profile.getName() + ": Водитель " + driver.getProfile().getName() + " принял заказ.");
-
-                // Эмуляция времени пути до пассажира
+                // Эмуляция ожидания машины
                 double distanceToPassenger = DistanceCalculator.calculateDistance(car.getCoordinates(), fromPoint);
-                long timeToPassengerMs = (long)((distanceToPassenger / 20.0) * 1000);
-                Thread.sleep(timeToPassengerMs);
+                Thread.sleep((long) ((distanceToPassenger / 20.0) * 1000));
 
                 setStatus(PassengerStatus.IN_RIDE);
                 LOGGER.info(profile.getName() + ": В пути...");
 
-                // Эмуляция самой поездки
-                double distanceRide = DistanceCalculator.calculateDistance(fromPoint, toPoint);
-                long timeRideMs = (long)((distanceRide / 20.0) * 1000);
-                Thread.sleep(timeRideMs);
+                // Поездка
+                double rideDistance = DistanceCalculator.calculateDistance(fromPoint, toPoint);
+                Thread.sleep((long) ((rideDistance / 20.0) * 1000));
 
                 setStatus(PassengerStatus.FINISHED);
-
-                // Освобождаем машину — теперь это должен делать сервис/водитель
                 car.getIsAvailable().set(true);
                 driver.incrementOrderCounter();
+                driver.getIsAvailable().set(true); // <- ВОЗВРАЩАЕМ ВОДИТЕЛЯ В ПУЛ ДОСТУПНЫХ
+                driver.setCurrentOrder(null);
 
                 LOGGER.info(profile.getName() + ": Поездка завершена.");
                 rideAccepted = true;
             }
+
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOGGER.warning(profile.getName() + ": Поток был прерван.");
+            LOGGER.warning(profile.getName() + ": Прерван поток.");
         }
     }
+
 
 
     // Геттеры и сеттеры

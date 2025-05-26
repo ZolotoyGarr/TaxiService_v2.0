@@ -1,5 +1,6 @@
 package javiki.course.passenger;
 
+import javiki.course.operator.OperatorPool;
 import javiki.course.services.OrderTaxiService;
 
 import java.util.ArrayList;
@@ -7,6 +8,11 @@ import java.util.List;
 
 public class PassengerPool {
     private final List<Passenger> passengersPool = new ArrayList<>();
+    private final OperatorPool operatorPool;
+
+    public PassengerPool(OperatorPool operatorPool) {
+        this.operatorPool = operatorPool;
+    }
 
     // Метод для добавления пассажира в пул
     public void addPassenger(Passenger passenger) {
@@ -20,7 +26,7 @@ public class PassengerPool {
 
     // Метод для создания нового пассажира и добавления его в пул
     public Passenger createPassenger(OrderTaxiService orderTaxiService) {
-        Passenger passenger = new Passenger(orderTaxiService);  // Пассажир теперь инициализируется через конструктор
+        Passenger passenger = new Passenger(orderTaxiService, operatorPool);  // Пассажир теперь инициализируется через конструктор
         this.addPassenger(passenger);  // Добавление пассажира в пул
         return passenger;
     }

@@ -10,6 +10,7 @@ public class Driver {
     private final Profile profile;
     private TaxiCar taxiCar;
     private OrderTaxiRequest currentOrder;
+
     private final AtomicBoolean isAvailable = new AtomicBoolean(true);
     private int orderCounter = 0;
 
@@ -37,12 +38,13 @@ public class Driver {
         this.currentOrder = currentOrder;
     }
 
-    public boolean isAvailable() {
-        return isAvailable.get();
+
+    public boolean compareAndSetAvailable() {
+        return isAvailable.compareAndSet(true, false);
     }
 
-    public void setAvailable(boolean available) {
-        isAvailable.set(available);
+    public AtomicBoolean getIsAvailable() {
+        return isAvailable;
     }
 
     public int getOrderCounter() {

@@ -23,7 +23,7 @@ public class TaxiCarPool {
         TaxiCarType carType = carTypes.get(RANDOM.nextInt(carTypes.size()));
         String carId = "Car-" + RANDOM.nextInt(10000);
         PointCoordinates startCoordinates = new PointCoordinates(RANDOM.nextInt(101), RANDOM.nextInt(101));
-        TaxiCar taxiCar = new TaxiCar(carId, null, RANDOM.nextInt(1000), CarQuality.PREMIUM, startCoordinates, carType);
+        TaxiCar taxiCar = new TaxiCar(carId, null, RANDOM.nextInt(1000), startCoordinates, carType);
         taxiCar.setIsAvailable(new AtomicBoolean(true));
         addCar(taxiCar);
         return taxiCar;

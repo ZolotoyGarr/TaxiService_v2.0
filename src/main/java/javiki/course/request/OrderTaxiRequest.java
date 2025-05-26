@@ -13,13 +13,22 @@ public class OrderTaxiRequest extends PassengerRequest {
     private final PointCoordinates fromPoint;
     private final PointCoordinates toPoint;
     private Driver driver;
-    private OrderStatus orderStatus;  // Новый статус для заказа
+    private OrderStatus orderStatus;
+    private int attemptCount = 0;
 
     public OrderTaxiRequest(Passenger passenger, TaxiCarType taxiCarType, PointCoordinates fromPoint, PointCoordinates toPoint) {
         super(passenger);
         this.taxiCarType = taxiCarType;
         this.fromPoint = fromPoint;
         this.toPoint = toPoint;
+    }
+
+    public int getAttemptCount() {
+        return attemptCount;
+    }
+
+    public void incrementAttemptCount() {
+        this.attemptCount++;
     }
 
     public TaxiCarType getTaxiCarType() {
